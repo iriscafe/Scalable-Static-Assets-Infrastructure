@@ -81,38 +81,47 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[
-              'set -e',
-              'ECR_REGISTRY=\"$ECR_REGISTRY\"',
-              'ECR_REPOSITORY=\"$ECR_REPOSITORY\"',
-              'IMAGE_TAG=\"$IMAGE_TAG\"',
-              'AWS_REGION=\"$AWS_REGION\"',
-              'echo \"Iniciando atualização do container...\"',
-              'aws ecr get-login-password --region $${AWS_REGION} | docker login --username AWS --password-stdin $${ECR_REGISTRY}',
-              'echo \"Parando container anterior...\"',
-              'docker stop admin-panel 2>/dev/null || true',
-              'docker rm admin-panel 2>/dev/null || true',
-              'docker rmi $${ECR_REGISTRY}/$${ECR_REPOSITORY}:$${IMAGE_TAG} 2>/dev/null || true',
-              'echo \"Fazendo pull da nova imagem: $${ECR_REGISTRY}/$${ECR_REPOSITORY}:$${IMAGE_TAG}\"',
-              'docker pull $${ECR_REGISTRY}/$${ECR_REPOSITORY}:$${IMAGE_TAG}',
-              'echo \"Iniciando novo container...\"',
-              'docker run -d --name admin-panel --restart unless-stopped -p 80:80 $${ECR_REGISTRY}/$${ECR_REPOSITORY}:$${IMAGE_TAG}',
-              'sleep 5',
-              'if docker ps | grep -q admin-panel; then',
-              '  echo \"Deploy realizado com sucesso!\"',
-              '  docker ps | grep admin-panel',
-              '  PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)',
-              '  echo \"Aplicação disponível em: http://$${PUBLIC_IP}\"',
-              'else',
-              '  echo \"Erro: Container não está rodando\"',
-              '  docker logs admin-panel || true',
-              '  exit 1',
-              'fi'
-            ]" \
-            --region ${{ env.AWS_REGION }} \
+            --parameters '{
+              "commands": [
+                "set -e",
+                "ECR_REGISTRY='"$ECR_REGISTRY"'",
+                "ECR_REPOSITORY='"$ECR_REPOSITORY"'",
+                "IMAGE_TAG='"$IMAGE_TAG"'",
+                "AWS_REGION='"$AWS_REGION"'",
+
+                "echo Iniciando atualização do container...",
+
+                "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}",
+
+                "echo Parando container anterior...",
+                "docker stop admin-panel 2>/dev/null || true",
+                "docker rm admin-panel 2>/dev/null || true",
+                "docker rmi ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} 2>/dev/null || true",
+
+                "echo Fazendo pull da nova imagem...",
+                "docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}",
+
+                "echo Iniciando novo container...",
+                "docker run -d --name admin-panel --restart unless-stopped -p 80:80 ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}",
+
+                "sleep 5",
+
+                "if docker ps | grep -q admin-panel; then \
+                  echo Deploy realizado com sucesso!; \
+                  docker ps | grep admin-panel; \
+                  PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4); \
+                  echo Aplicação disponível em: http://${PUBLIC_IP}; \
+                else \
+                  echo Erro: Container não está rodando; \
+                  docker logs admin-panel || true; \
+                  exit 1; \
+                fi"
+              ]
+            }' \
+            --region "$AWS_REGION" \
             --query 'Command.CommandId' \
             --output text)
-          
+
           echo "Comando SSM enviado: $COMMAND_ID"
           echo "Aguardando execução..."
           
