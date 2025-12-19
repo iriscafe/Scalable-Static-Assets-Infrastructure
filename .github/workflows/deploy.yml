@@ -78,34 +78,26 @@ jobs:
           INSTANCE_ID="${{ steps.get-ec2-info.outputs.instance_id }}"
 
           echo "Enviando comando SSM para atualizar container..."
+          INSTANCE_NAME="${{ env.INSTANCE_NAME }}"
+
           COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:Name,Values=${INSTANCE_NAME}" \
             --parameters '{
               "commands": [
                 "set -e",
-                "ECR_REGISTRY='"$ECR_REGISTRY"'",
-                "ECR_REPOSITORY='"$ECR_REPOSITORY"'",
-                "IMAGE_TAG='"$IMAGE_TAG"'",
-                "AWS_REGION='"$AWS_REGION"'",
+                "echo Deploy na instancia: '"$INSTANCE_NAME"'",
 
-                "echo Iniciando atualização do container...",
+                "aws ecr get-login-password --region '"$AWS_REGION"' | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
 
-                "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}",
+                "docker pull '"$ECR_REGISTRY"'/'"$ECR_REPOSITORY"':'"$IMAGE_TAG"'",
 
-                "echo Parando container anterior...",
-                "docker stop admin-panel 2>/dev/null || true",
-                "docker rm admin-panel 2>/dev/null || true",
-                "docker rmi ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} 2>/dev/null || true",
+                "docker stop admin-panel || true",
+                "docker rm admin-panel || true",
 
-                "echo Fazendo pull da nova imagem...",
-                "docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}",
-
-                "echo Iniciando novo container...",
-                "docker run -d --name admin-panel --restart unless-stopped -p 80:80 ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                "docker run -d --name admin-panel --restart unless-stopped -p 80:80 '"$ECR_REGISTRY"'/'"$ECR_REPOSITORY"':'"$IMAGE_TAG"'"
               ]
             }' \
-            --region "$AWS_REGION" \
             --query 'Command.CommandId' \
             --output text)
 
