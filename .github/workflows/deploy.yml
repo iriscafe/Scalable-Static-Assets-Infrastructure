@@ -103,19 +103,6 @@ jobs:
 
                 "echo Iniciando novo container...",
                 "docker run -d --name admin-panel --restart unless-stopped -p 80:80 ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}",
-
-                "sleep 5",
-
-                "if docker ps | grep -q admin-panel; then \
-                  echo Deploy realizado com sucesso!; \
-                  docker ps | grep admin-panel; \
-                  PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4); \
-                  echo Aplicação disponível em: http://${PUBLIC_IP}; \
-                else \
-                  echo Erro: Container não está rodando; \
-                  docker logs admin-panel || true; \
-                  exit 1; \
-                fi"
               ]
             }' \
             --region "$AWS_REGION" \
