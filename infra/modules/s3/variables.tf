@@ -32,3 +32,15 @@ variable "policy_statement_sid" {
   description = "SID (Statement ID) para a política do bucket"
   default     = "AllowCloudFrontServicePrincipalReadWrite"
 }
+
+variable "force_destroy" {
+  type        = bool
+  description = "Whether to force destroy the bucket"
+  default     = false
+}
+
+variable "versioning_enabled" {
+  type        = string
+  description = "Whether to enable versioning for the bucket, options: Enabled, Disabled"
+  default     = "Disabled"
+}

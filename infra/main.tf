@@ -3,6 +3,8 @@ module "s3_buckets" {
 
   bucket_name = var.bucket_name
   tags        = var.tags
+  force_destroy = var.force_destroy
+  versioning_enabled = var.versioning_enabled
 
   create_cloudfront_policy   = true
   cloudfront_distribution_arn = module.cloudfront.distribution_arn

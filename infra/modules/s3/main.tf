@@ -1,6 +1,14 @@
 resource "aws_s3_bucket" "bucket_frontend" {
   bucket = var.bucket_name
   tags   = var.tags
+  force_destroy = var.force_destroy
+}
+
+resource "aws_s3_bucket_versioning" "bucket_frontend" {
+  bucket = aws_s3_bucket.bucket_frontend.id
+  versioning_configuration {
+    status = var.versioning_enabled
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "bucket_frontend" {

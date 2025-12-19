@@ -10,6 +10,18 @@ variable "tags" {
   default     = {}
 }
 
+variable "force_destroy" {
+  type        = bool
+  description = "Whether to force destroy the bucket"
+  default     = false
+}
+
+variable "versioning_enabled" {
+  type        = string
+  description = "Whether to enable versioning for the bucket, options: Enabled, Disabled"
+  default     = "Disabled"
+}
+
 # Variáveis CloudFront
 variable "cloudfront_enabled" {
   type        = bool
