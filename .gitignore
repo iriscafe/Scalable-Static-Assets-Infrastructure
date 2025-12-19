@@ -1,4 +1,8 @@
 .terraform
 .terraform.lock.hcl
 .terraform.tfstate*
-plan.out
+plan-*.out
+# Chaves SSH (não commitar!)
+id_rsa
+id_rsa.pub
+*.pem

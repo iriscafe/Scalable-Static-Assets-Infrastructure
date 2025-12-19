@@ -1,34 +1,125 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload de Arquivos</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        form {
-            text-align: center;
-        }
-        input[type="file"] {
-            margin-bottom: 15px;
-        }
-        button {
-            padding: 10px 20px;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upload de Assets</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.1);
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      margin: 16px 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    .success {
+      color: #155724;
+    }
+
+    .error {
+      color: #721c24;
+    }
+  </style>
 </head>
 <body>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" />
-        <button type="submit">Upload</button>
+  <div class="card">
+    <h1>Upload de Assets</h1>
+
+    <form id="uploadForm">
+      <input
+        type="file"
+        id="fileInput"
+        name="file"
+        multiple
+        webkitdirectory
+        directory
+      />
+
+      <button type="submit" id="submitBtn">Enviar pasta</button>
     </form>
+
+    <div id="status" class="status"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const button = document.getElementById('submitBtn');
+    const status = document.getElementById('status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      button.disabled = true;
+      button.textContent = 'Enviando...';
+      status.textContent = '';
+      status.className = 'status';
+
+      try {
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: new FormData(form),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.message || 'Erro no upload');
+
+        status.textContent = 'Upload concluído com sucesso 🎉';
+        status.classList.add('success');
+        form.reset();
+      } catch (err) {
+        status.textContent = err.message;
+        status.classList.add('error');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Enviar pasta';
+      }
+    });
+  </script>
 </body>
 </html>
