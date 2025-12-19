@@ -3,8 +3,7 @@ name: Build and Push to ECR
 on:
   push:
     branches:
-      - main
-      - develop
+      - master
   workflow_dispatch:
 
 env:
