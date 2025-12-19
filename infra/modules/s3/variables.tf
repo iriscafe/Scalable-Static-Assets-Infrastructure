@@ -44,3 +44,9 @@ variable "versioning_enabled" {
   description = "Whether to enable versioning for the bucket, options: Enabled, Disabled"
   default     = "Disabled"
 }
+
+variable "provision_initial_content" {
+  type        = bool
+  description = "Se true, faz upload de um index.html inicial no bucket"
+  default     = true
+}

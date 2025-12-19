@@ -52,3 +52,14 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
   bucket   = aws_s3_bucket.bucket_frontend.id
   policy   = data.aws_iam_policy_document.origin_bucket_policy[each.key].json
 }
+
+# Provisionar conteúdo inicial no S3
+resource "aws_s3_object" "index_html" {
+  count  = var.provision_initial_content ? 1 : 0
+  bucket = aws_s3_bucket.bucket_frontend.id
+  key    = "index.html"
+  source = "${path.module}/index.html"
+  content_type = "text/html"
+
+  tags = var.tags
+}
