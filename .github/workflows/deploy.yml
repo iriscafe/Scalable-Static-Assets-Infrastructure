@@ -9,12 +9,12 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: admin-panel
-  DOCKER_IMAGE_TAG: ${{ github.sha }}
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -27,134 +27,52 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login no Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Criar repositório ECR se não existir
-        run: |
-          aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} || \
-          aws ecr create-repository \
-            --repository-name ${{ env.ECR_REPOSITORY }} \
-            --region ${{ env.AWS_REGION }} \
-            --image-scanning-configuration scanOnPush=true \
-            --image-tag-mutability MUTABLE
-
-      - name: Obter Account ID da AWS
-        id: get-account-id
+      - name: Obter Account ID e ECR Registry
+        id: aws-info
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          echo "account_id=$ACCOUNT_ID" >> $GITHUB_OUTPUT
-          echo "ECR_REGISTRY=$ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com" >> $GITHUB_OUTPUT
+          echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
+          echo "ECR_REGISTRY=$ACCOUNT_ID.dkr.ecr.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
 
-      - name: Build da imagem Docker
+      - name: Criar repositório ECR (se não existir)
+        run: |
+          aws ecr describe-repositories --repository-names $ECR_REPOSITORY --region $AWS_REGION || \
+          aws ecr create-repository \
+            --repository-name $ECR_REPOSITORY \
+            --region $AWS_REGION
+
+      - name: Build e tag da imagem
         working-directory: ./admin-panel
         run: |
-          docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }} .
-          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }} ${{ steps.get-account-id.outputs.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }}
-          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }} ${{ steps.get-account-id.outputs.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
-          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }} ${{ steps.get-account-id.outputs.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       - name: Push da imagem para o ECR
         run: |
-          docker push ${{ steps.get-account-id.outputs.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }}
-          docker push ${{ steps.get-account-id.outputs.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
-          docker push ${{ steps.get-account-id.outputs.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      - name: Obter informações da instância EC2
-        id: get-ec2-info
+      - name: Deploy na EC2 via SSM
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=static-assets-dev-admin-panel" "Name=instance-state-name,Values=running" \
-            --query 'Reservations[0].Instances[0].InstanceId' \
-            --output text \
-            --region ${{ env.AWS_REGION }})
+          echo "🚀 Deploy via SSM"
 
-      - name: Atualizar imagem na EC2 via SSM
-        run: |
-          ECR_REGISTRY="${{ steps.get-account-id.outputs.ECR_REGISTRY }}"
-          ECR_REPOSITORY="${{ env.ECR_REPOSITORY }}"
-          IMAGE_TAG="${{ env.DOCKER_IMAGE_TAG }}"
-          AWS_REGION="${{ env.AWS_REGION }}"
-          INSTANCE_ID="${{ steps.get-ec2-info.outputs.instance_id }}"
-
-          echo "Enviando comando SSM para atualizar container..."
-          INSTANCE_NAME="${{ env.INSTANCE_NAME }}"
-
-          COMMAND_ID=$(aws ssm send-command \
+          aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=tag:Name,Values=${INSTANCE_NAME}" \
-            --parameters '{
-              "commands": [
-                "set -e",
-                "echo Deploy na instancia: '"$INSTANCE_NAME"'",
+            --targets "Key=tag:Application,Values=admin-panel" \
+            --region $AWS_REGION \
+            --parameters "commands=[
+              \"set -e\",
+              \"aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY\",
+              \"docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\",
+              \"docker stop admin-panel || true\",
+              \"docker rm admin-panel || true\",
+              \"docker run -d --restart unless-stopped --name admin-panel -p 80:80 $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG\"
+            ]"
 
-                "aws ecr get-login-password --region '"$AWS_REGION"' | docker login --username AWS --password-stdin '"$ECR_REGISTRY"'",
-
-                "docker pull '"$ECR_REGISTRY"'/'"$ECR_REPOSITORY"':'"$IMAGE_TAG"'",
-
-                "docker stop admin-panel || true",
-                "docker rm admin-panel || true",
-
-                "docker run -d --name admin-panel --restart unless-stopped -p 80:80 '"$ECR_REGISTRY"'/'"$ECR_REPOSITORY"':'"$IMAGE_TAG"'"
-              ]
-            }' \
-            --query 'Command.CommandId' \
-            --output text)
-
-          echo "Comando SSM enviado: $COMMAND_ID"
-          echo "Aguardando execução..."
-          
-          # Aguardar conclusão do comando
-          for i in {1..60}; do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "$INSTANCE_ID" \
-              --region ${{ env.AWS_REGION }} \
-              --query 'Status' \
-              --output text 2>/dev/null || echo "InProgress")
-            
-            if [ "$STATUS" = "Success" ]; then
-              echo "✅ Comando executado com sucesso!"
-              echo "--- Output ---"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "$INSTANCE_ID" \
-                --region ${{ env.AWS_REGION }} \
-                --query 'StandardOutputContent' \
-                --output text
-              exit 0
-            elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
-              echo "❌ Comando falhou com status: $STATUS"
-              echo "--- Error Output ---"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "$INSTANCE_ID" \
-                --region ${{ env.AWS_REGION }} \
-                --query 'StandardErrorContent' \
-                --output text || true
-              echo "--- Standard Output ---"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "$INSTANCE_ID" \
-                --region ${{ env.AWS_REGION }} \
-                --query 'StandardOutputContent' \
-                --output text || true
-              exit 1
-            fi
-            
-            sleep 2
-          done
-          
-          echo "⚠️  Timeout aguardando execução do comando"
-          exit 1
-
-      - name: Resumo do build
+      - name: Resumo
         run: |
-          echo "✅ Build e push concluídos com sucesso!"
-          echo "📦 Imagem: ${{ steps.get-account-id.outputs.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.DOCKER_IMAGE_TAG }}"
-          echo "📦 Imagem (SHA): ${{ steps.get-account-id.outputs.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
-          if [ "${{ steps.get-ec2-info.outputs.skip_deploy }}" != "true" ]; then
-            echo "🚀 Deploy realizado na EC2 via SSM: ${{ steps.get-ec2-info.outputs.instance_id }}"
-          else
-            echo "⚠️  Deploy na EC2 foi pulado (instância não encontrada)"
-          fi
+          echo "✅ Deploy concluído"
+          echo "Imagem: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
