@@ -1,3 +1,6 @@
+# Data source para obter Account ID
+data "aws_caller_identity" "current" {}
+
 module "s3_buckets" {
   source = "./modules/s3"
 
@@ -52,5 +55,9 @@ module "ec2_admin" {
   key_name                = var.ec2_key_name
   create_key_pair         = var.ec2_create_key_pair
   public_key              = var.ec2_public_key
+  ecr_repository          = var.ec2_ecr_repository
+  ecr_registry            = var.ec2_ecr_repository != "" ? "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.ec2_aws_region}.amazonaws.com" : ""
+  aws_region              = var.ec2_aws_region
+  ecr_image_tag           = var.ec2_ecr_image_tag
   tags                    = var.tags
 }

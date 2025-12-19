@@ -65,3 +65,27 @@ variable "tags" {
   default     = {}
 }
 
+variable "ecr_repository" {
+  type        = string
+  description = "Nome do repositório ECR"
+  default     = ""
+}
+
+variable "aws_region" {
+  type        = string
+  description = "Região AWS"
+  default     = "us-east-1"
+}
+
+variable "ecr_image_tag" {
+  type        = string
+  description = "Tag da imagem Docker no ECR"
+  default     = "latest"
+}
+
+variable "ecr_registry" {
+  type        = string
+  description = "Registry do ECR (formato: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com)"
+  default     = ""
+}
+

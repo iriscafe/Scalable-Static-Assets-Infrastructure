@@ -97,6 +97,34 @@ resource "aws_iam_role_policy" "ec2_s3_policy" {
   })
 }
 
+# Política IAM para acesso ao ECR (pull de imagens)
+resource "aws_iam_role_policy" "ec2_ecr_policy" {
+  name = "${var.name_prefix}-ec2-ecr-policy"
+  role = aws_iam_role.ec2_s3_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Política IAM para SSM (permitir execução de comandos remotamente)
+resource "aws_iam_role_policy_attachment" "ec2_ssm_policy" {
+  role       = aws_iam_role.ec2_s3_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 # Instance Profile para associar o IAM Role à EC2
 resource "aws_iam_instance_profile" "ec2_s3_profile" {
   name = "${var.name_prefix}-ec2-s3-profile"
@@ -114,6 +142,16 @@ resource "aws_key_pair" "ec2_key" {
   tags = var.tags
 }
 
+# Script user_data para executar container Docker do ECR
+locals {
+  user_data_script = var.ecr_repository != "" ? templatefile("${path.module}/user_data.sh", {
+    ecr_registry   = var.ecr_registry
+    ecr_repository = var.ecr_repository
+    image_tag      = var.ecr_image_tag
+    aws_region     = var.aws_region
+  }) : var.user_data
+}
+
 # EC2 Instance
 resource "aws_instance" "admin_panel" {
   ami                    = var.ami_id
@@ -123,12 +161,15 @@ resource "aws_instance" "admin_panel" {
   iam_instance_profile   = aws_iam_instance_profile.ec2_s3_profile.name
   key_name               = var.key_name != "" ? var.key_name : (var.create_key_pair ? aws_key_pair.ec2_key[0].key_name : "")
 
-  user_data = var.user_data
+  user_data = base64encode(local.user_data_script)
 
   tags = merge(
     var.tags,
     {
-      Name = "${var.name_prefix}-admin-panel"
+      Name            = "${var.name_prefix}-admin-panel"
+      DeployTarget    = "true"
+      ManagedBy       = "terraform"
+      Application     = "admin-panel"
     }
   )
 }

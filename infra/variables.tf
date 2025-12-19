@@ -149,3 +149,21 @@ variable "ec2_public_key" {
   description = "Chave pública SSH (necessário se ec2_create_key_pair = true)"
   default     = ""
 }
+
+variable "ec2_ecr_repository" {
+  type        = string
+  description = "Nome do repositório ECR para fazer pull da imagem Docker"
+  default     = ""
+}
+
+variable "ec2_aws_region" {
+  type        = string
+  description = "Região AWS onde está o repositório ECR"
+  default     = "us-east-1"
+}
+
+variable "ec2_ecr_image_tag" {
+  type        = string
+  description = "Tag da imagem Docker no ECR"
+  default     = "latest"
+}
