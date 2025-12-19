@@ -33,11 +33,12 @@ plan:
 	fi
 	@if [ ! -d ".terraform" ]; then terraform init; fi
 	@TFVARS=$$(find $(ENV) -name "*.tfvars" -type f | sort | sed 's/^/-var-file=/'); \
+	TFVARS_LOCAL=$$(find $(ENV) -name ".tfvars.local" -type f 2>/dev/null | sed 's/^/-var-file=/'); \
 	if [ -z "$$TFVARS" ]; then \
 		echo "❌ Nenhum arquivo .tfvars encontrado no ambiente \033[1m$(ENV)\033[0m."; \
 		exit 1; \
 	fi; \
-	terraform plan $$TFVARS -out=plan-$(ENV).out
+	terraform plan $$TFVARS $$TFVARS_LOCAL -out=plan-$(ENV).out
 
 apply:
 	@if [ -z "$(ENV)" ]; then \
@@ -62,12 +63,13 @@ destroy:
 	fi
 	@if [ ! -d ".terraform" ]; then terraform init; fi
 	@TFVARS=$$(find $(ENV) -name "*.tfvars" -type f | sort | sed 's/^/-var-file=/'); \
+	TFVARS_LOCAL=$$(find $(ENV) -name ".tfvars.local" -type f 2>/dev/null | sed 's/^/-var-file=/'); \
 	if [ -z "$$TFVARS" ]; then \
 		echo "❌ Nenhum arquivo .tfvars encontrado no ambiente \033[1m$(ENV)\033[0m."; \
 		exit 1; \
 	fi; \
 	echo "⚠️  ATENÇÃO: Você está prestes a DESTRUIR toda a infraestrutura do ambiente \033[1m$(ENV)\033[0m!"; \
-	terraform destroy $$TFVARS
+	terraform destroy $$TFVARS $$TFVARS_LOCAL
 
 clean:
 	@echo "Removendo arquivos temporários do Terraform..."

@@ -6,3 +6,4 @@ plan-*.out
 id_rsa
 id_rsa.pub
 *.pem
+.tfvars.local
