@@ -15,7 +15,7 @@ help:
 	@echo "  \033[1mmake init\033[0m                    Inicializa o Terraform"
 	@echo "  \033[1mmake plan <ambiente>\033[0m         Gera um plan do Terraform para o ambiente especificado (ex: \033[1mmake plan dev\033[0m)"
 	@echo "  \033[1mmake apply <ambiente>\033[0m        Aplica as mudanças do plan gerado (ex: \033[1mmake apply dev\033[0m)"
-	@echo "  \033[1mmake destroy <ambiente>\033[0m      Destroi a infraestrutura usando o plan gerado (ex: \033[1mmake destroy dev\033[0m)"
+	@echo "  \033[1mmake destroy <ambiente>\033[0m      Destroi a infraestrutura do ambiente especificado (ex: \033[1mmake destroy dev\033[0m)"
 	@echo "  \033[1mmake clean\033[0m                   Remove arquivos temporários do Terraform"
 	@echo "  \033[1mmake help\033[0m                    Mostra esta mensagem de ajuda"
 
@@ -56,13 +56,18 @@ destroy:
 		echo "❌ Por favor, especifique um ambiente. Exemplo: \033[1mmake destroy dev\033[0m"; \
 		exit 1; \
 	fi
-	@if [ -f "plan-$(ENV).out" ]; then \
-		terraform destroy plan-$(ENV).out; \
-		rm -f plan-$(ENV).out; \
-	else \
-		echo "❌ Não foi possível encontrar o plan-$(ENV).out. Execute \033[1mmake plan $(ENV)\033[0m primeiro."; \
+	@if [ ! -d "$(ENV)" ]; then \
+		echo "❌ Ambiente \033[1m$(ENV)\033[0m não encontrado."; \
 		exit 1; \
 	fi
+	@if [ ! -d ".terraform" ]; then terraform init; fi
+	@TFVARS=$$(find $(ENV) -name "*.tfvars" -type f | sort | sed 's/^/-var-file=/'); \
+	if [ -z "$$TFVARS" ]; then \
+		echo "❌ Nenhum arquivo .tfvars encontrado no ambiente \033[1m$(ENV)\033[0m."; \
+		exit 1; \
+	fi; \
+	echo "⚠️  ATENÇÃO: Você está prestes a DESTRUIR toda a infraestrutura do ambiente \033[1m$(ENV)\033[0m!"; \
+	terraform destroy $$TFVARS
 
 clean:
 	@echo "Removendo arquivos temporários do Terraform..."
