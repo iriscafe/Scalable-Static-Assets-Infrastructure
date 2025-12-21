@@ -27,4 +27,3 @@ output "key_pair_name" {
   description = "Nome do Key Pair criado (se create_key_pair = true)"
   value       = var.create_key_pair ? aws_key_pair.ec2_key[0].key_name : null
 }
-
