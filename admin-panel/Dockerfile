@@ -13,3 +13,4 @@ EXPOSE 80
 ENV PYTHONPATH=/app
 
 CMD ["python", "backend/app.py"]
+
