@@ -7,6 +7,9 @@ IMAGE_TAG="${image_tag}"
 AWS_REGION="${aws_region}"
 CLOUDFRONT_URL="${cloudfront_url}"
 
+# Persistir variável para deploys futuros via pipeline
+echo "CLOUDFRONT_URL=${cloudfront_url}" > /etc/admin-panel.env
+
 # Log para CloudWatch
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 echo "Iniciando configuração da instância EC2..."
