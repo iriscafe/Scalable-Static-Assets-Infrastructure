@@ -105,14 +105,7 @@ jobs:
     needs:
       - check-changes
       - output-resources
-    if: >
-      ${{
-        needs.check-changes.outputs.admin == 'true' &&
-        (
-          needs.check-changes.outputs.infra != 'true' ||
-          needs.resources-create.result == 'success'
-        )
-      }}
+    if: ${{ needs.check-changes.outputs.admin == 'true' }}
 
     runs-on: ubuntu-latest
     steps:
