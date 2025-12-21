@@ -32,7 +32,6 @@ jobs:
     needs: check-changes
     if: ${{ needs.check-changes.outputs.infra == 'true' }}
     runs-on: ubuntu-latest
-    needs: build-and-push-image
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -119,7 +118,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
   deploy-image:
-    needs: [check-changes, build-and-push-image]
+    needs: build-and-push-image
     if: ${{ needs.check-changes.outputs.admin == 'true' }}
     runs-on: ubuntu-latest
 
