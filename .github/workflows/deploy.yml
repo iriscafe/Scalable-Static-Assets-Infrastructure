@@ -14,8 +14,8 @@ env:
 jobs:
   resources-create:
     runs-on: ubuntu-latest
-  outputs:
-    cloudfront_url: ${{ steps.terraform.outputs.url }}
+    outputs:
+      cloudfront_url: ${{ steps.terraform.outputs.url }}
 
     steps:
       - name: Checkout repository
