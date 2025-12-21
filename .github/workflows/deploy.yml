@@ -54,11 +54,11 @@ jobs:
 
       - name: Terraform Plan
         working-directory: infra
-        run: make plan
+        run: make plan dev
 
       - name: Terraform Apply
         working-directory: infra
-        run: make apply
+        run: make apply dev
 
       - name: Summary
         run: echo "✅ AWS resources created"
