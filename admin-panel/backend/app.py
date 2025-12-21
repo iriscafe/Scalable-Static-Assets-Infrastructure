@@ -11,8 +11,7 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 def index():
     cloudfront_url = os.getenv("CLOUDFRONT_URL", "https://CDN_NOT_CONFIGURED")
     if cloudfront_url and not cloudfront_url.startswith("http"):
-        cloudfront_url = f"https://{cloudfront_url}"  
-        
+        cloudfront_url = f"https://{cloudfront_url}"
     try:
         with open(os.path.join(FRONTEND_DIR, "index.html"), "r") as f:
             content = f.read()
