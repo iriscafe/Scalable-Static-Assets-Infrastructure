@@ -12,26 +12,11 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  check-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      infra: ${{ steps.filter.outputs.infra }}
-      admin: ${{ steps.filter.outputs.admin }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with:
-          filters: |
-            infra:
-              - 'infra/**'
-            admin:
-              - 'admin-panel/**'
-
   resources-create:
-    needs: check-changes
-    if: ${{ needs.check-changes.outputs.infra == 'true' }}
     runs-on: ubuntu-latest
+  outputs:
+    cloudfront_url: ${{ steps.terraform.outputs.url }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -60,38 +45,7 @@ jobs:
         working-directory: infra
         run: |
           make apply dev
-
-      - name: Summary
-        run: echo "✅ AWS resources created"
-
-  output-resources:
-    runs-on: ubuntu-latest
-    needs:
-      - check-changes
-    if: >
-      ${{
-        needs.check-changes.outputs.admin == 'true' &&
-        (
-          needs.check-changes.outputs.infra != 'true' ||
-          needs.resources-create.result == 'success'
-        )
-      }}
-    outputs:
-      cloudfront_url: ${{ steps.terraform.outputs.url }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
+      
       - name: Read CloudFront output
         id: terraform
         working-directory: infra
@@ -100,18 +54,13 @@ jobs:
           URL=$(terraform output -raw cloudfront_domain_name 2>/dev/null || true)
           echo "url=$URL" >> $GITHUB_OUTPUT
 
+      - name: Summary
+        run: echo "✅ AWS resources created"
+
   build-and-push-image:
     needs:
-      - check-changes
-      - output-resources
       - resources-create
-    if: ${{
-        needs.check-changes.outputs.admin == 'true' &&
-        (
-          needs.check-changes.outputs.infra != 'true' ||
-          needs.resources-create.result == 'success'
-        )
-      }}
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -155,14 +104,12 @@ jobs:
 
   deploy-image:
     needs:
-      - check-changes
-      - output-resources
+      - resources-create
       - build-and-push-image
-    if: ${{ needs.check-changes.outputs.admin == 'true' }}
     runs-on: ubuntu-latest
 
     env:
-      CLOUDFRONT_URL: ${{ needs.output-resources.outputs.cloudfront_url }}
+      CLOUDFRONT_URL: ${{ needs.resources-create.outputs.cloudfront_url }}
 
     steps:
       - name: Configure credenciais AWS
