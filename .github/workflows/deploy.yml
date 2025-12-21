@@ -12,13 +12,41 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  build-and-deploy:
+  resources-create:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout código
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+        role-to-assume: arn:aws:iam::123456789012:role/github-actions-role
+        aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.3
+
+      - name: Terraform Init
+        working-directory: infra
+        run: make init
+
+      - name: Terraform Plan
+        working-directory: infra
+        run: make plan
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: make apply
+
+      - name: Summary
+        run: echo "✅ AWS resources created" 
+
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    steps:
       - name: Configure credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -55,6 +83,11 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
+  deploy-image:
+    runs-on: ubuntu-latest
+    needs: build-and-push-image
+
+    steps:
       - name: Deploy na EC2 via SSM
         run: |
           echo "🚀 Deploy via SSM"
@@ -76,3 +109,4 @@ jobs:
         run: |
           echo "✅ Deploy concluído"
           echo "Imagem: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+  
