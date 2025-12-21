@@ -4,7 +4,6 @@ resource "aws_security_group" "ec2_admin" {
   description = "Security Group para EC2 Admin Panel"
   vpc_id      = var.vpc_id
 
-  # SSH - restrito por IP se especificado
   ingress {
     description = "SSH"
     from_port   = 22
@@ -13,7 +12,6 @@ resource "aws_security_group" "ec2_admin" {
     cidr_blocks = var.allowed_ssh_cidr_blocks
   }
 
-  # HTTP
   ingress {
     description = "HTTP"
     from_port   = 80
@@ -31,7 +29,6 @@ resource "aws_security_group" "ec2_admin" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Porta 8080 para aplicações Docker
   ingress {
     description = "HTTP 8080"
     from_port   = 8080
@@ -40,7 +37,6 @@ resource "aws_security_group" "ec2_admin" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Egress - permitir todo tráfego de saída
   egress {
     description = "All outbound traffic"
     from_port   = 0
@@ -57,7 +53,6 @@ resource "aws_security_group" "ec2_admin" {
   )
 }
 
-# IAM Role para EC2 com permissões S3
 resource "aws_iam_role" "ec2_s3_role" {
   name = "${var.name_prefix}-ec2-s3-role"
 
@@ -77,7 +72,6 @@ resource "aws_iam_role" "ec2_s3_role" {
   tags = var.tags
 }
 
-# Política IAM para acesso ao S3 (menor privilégio - apenas PutObject)
 resource "aws_iam_role_policy" "ec2_s3_policy" {
   name = "${var.name_prefix}-ec2-s3-policy"
   role = aws_iam_role.ec2_s3_role.id
@@ -97,7 +91,6 @@ resource "aws_iam_role_policy" "ec2_s3_policy" {
   })
 }
 
-# Política IAM para acesso ao ECR (pull de imagens)
 resource "aws_iam_role_policy" "ec2_ecr_policy" {
   name = "${var.name_prefix}-ec2-ecr-policy"
   role = aws_iam_role.ec2_s3_role.id
@@ -121,13 +114,11 @@ resource "aws_iam_role_policy" "ec2_ecr_policy" {
   })
 }
 
-# Política IAM para SSM (permitir execução de comandos remotamente)
 resource "aws_iam_role_policy_attachment" "ec2_ssm_policy" {
   role       = aws_iam_role.ec2_s3_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# Instance Profile para associar o IAM Role à EC2
 resource "aws_iam_instance_profile" "ec2_s3_profile" {
   name = "${var.name_prefix}-ec2-s3-profile"
   role = aws_iam_role.ec2_s3_role.name
@@ -135,7 +126,6 @@ resource "aws_iam_instance_profile" "ec2_s3_profile" {
   tags = var.tags
 }
 
-# Key Pair para acesso SSH
 resource "aws_key_pair" "ec2_key" {
   count      = var.create_key_pair ? 1 : 0
   key_name   = "${var.name_prefix}-ec2-key"
@@ -144,7 +134,6 @@ resource "aws_key_pair" "ec2_key" {
   tags = var.tags
 }
 
-# Script user_data para executar container Docker do ECR
 locals {
   user_data_script = var.ecr_repository != "" ? templatefile("${path.module}/user_data.sh", {
     ecr_registry   = var.ecr_registry
