@@ -104,8 +104,14 @@ jobs:
     needs:
       - check-changes
       - output-resources
-    if: ${{ needs.check-changes.outputs.admin == 'true' }}
-
+      - resources-create
+    if: ${{
+        needs.check-changes.outputs.admin == 'true' &&
+        (
+          needs.check-changes.outputs.infra != 'true' ||
+          needs.resources-create.result == 'success'
+        )
+      }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
