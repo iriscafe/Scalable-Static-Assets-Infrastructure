@@ -4,13 +4,13 @@ data "aws_caller_identity" "current" {}
 module "s3_buckets" {
   source = "./modules/s3"
 
-  bucket_name = var.bucket_name
-  tags        = var.tags
-  force_destroy = var.force_destroy
-  versioning_enabled = var.versioning_enabled
+  bucket_name               = var.bucket_name
+  tags                      = var.tags
+  force_destroy             = var.force_destroy
+  versioning_enabled        = var.versioning_enabled
   provision_initial_content = var.provision_initial_content
 
-  create_cloudfront_policy   = true
+  create_cloudfront_policy    = true
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
 }
 
@@ -60,5 +60,6 @@ module "ec2_admin" {
   ecr_registry            = var.ec2_ecr_repository != "" ? "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.ec2_aws_region}.amazonaws.com" : ""
   aws_region              = var.ec2_aws_region
   ecr_image_tag           = var.ec2_ecr_image_tag
+  cloudfront_url          = "https://${module.cloudfront.distribution_domain_name}"
   tags                    = var.tags
 }

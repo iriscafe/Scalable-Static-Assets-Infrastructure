@@ -5,6 +5,7 @@ ECR_REGISTRY="${ecr_registry}"
 ECR_REPOSITORY="${ecr_repository}"
 IMAGE_TAG="${image_tag}"
 AWS_REGION="${aws_region}"
+CLOUDFRONT_URL="${cloudfront_url}"
 
 # Log para CloudWatch
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
@@ -39,6 +40,7 @@ if aws ecr describe-repositories --repository-names $${ECR_REPOSITORY} --region 
     docker run -d \
       --name admin-panel \
       --restart unless-stopped \
+      -e CLOUDFRONT_URL=$${CLOUDFRONT_URL} \
       -p 80:80 \
       $${ECR_REGISTRY}/$${ECR_REPOSITORY}:$${IMAGE_TAG}
     

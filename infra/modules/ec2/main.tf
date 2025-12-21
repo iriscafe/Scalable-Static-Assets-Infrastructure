@@ -140,6 +140,7 @@ locals {
     ecr_repository = var.ecr_repository
     image_tag      = var.ecr_image_tag
     aws_region     = var.aws_region
+    cloudfront_url = var.cloudfront_url
   }) : var.user_data
 }
 
@@ -157,10 +158,10 @@ resource "aws_instance" "admin_panel" {
   tags = merge(
     var.tags,
     {
-      Name            = "${var.name_prefix}-admin-panel"
-      DeployTarget    = "true"
-      ManagedBy       = "terraform"
-      Application     = "admin-panel"
+      Name         = "${var.name_prefix}-admin-panel"
+      DeployTarget = "true"
+      ManagedBy    = "terraform"
+      Application  = "admin-panel"
     }
   )
 }

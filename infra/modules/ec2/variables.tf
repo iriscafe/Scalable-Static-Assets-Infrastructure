@@ -89,3 +89,9 @@ variable "ecr_registry" {
   default     = ""
 }
 
+
+variable "cloudfront_url" {
+  type        = string
+  description = "URL da distribuição CloudFront para ser exibida no painel"
+  default     = ""
+}

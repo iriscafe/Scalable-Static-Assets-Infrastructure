@@ -9,7 +9,16 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 @app.route("/")
 def index():
-    return send_from_directory(FRONTEND_DIR, "index.html")
+    cloudfront_url = os.getenv("CLOUDFRONT_URL", "https://CDN_NOT_CONFIGURED")
+    
+    try:
+        with open(os.path.join(FRONTEND_DIR, "index.html"), "r") as f:
+            content = f.read()
+            
+        content = content.replace("{{ CLOUDFRONT_URL }}", cloudfront_url)
+        return content
+    except Exception as e:
+        return f"Error loading frontend: {str(e)}", 500
 
 @app.route("/upload", methods=["POST"])
 def upload():
