@@ -6,7 +6,7 @@ Este projeto implementa uma infraestrutura escalável, segura e moderna na AWS p
 
 A arquitetura foi desenhada para garantir que o conteúdo estático (armazenado no S3) seja entregue (via CloudFront) de forma segura, enquanto o gerenciamento desses ativos é feito através de um painel administrativo rodando em EC2.
 
-![Diagrama de Arquitetura](diagram.png)
+![Diagrama de Arquitetura](diagrama.png)
 
 ### Componentes
 
