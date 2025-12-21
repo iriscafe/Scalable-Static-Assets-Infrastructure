@@ -109,7 +109,5 @@ Essencial para debug. Como a automação roda "às escuras" durante o boot, ter 
 2.  **Segurança de Rede (WAF & Privada):**
     - Adicionar AWS WAF (Web Application Firewall) no CloudFront.
     - Mover a EC2 para uma Subnet Privada atrás de um Application Load Balancer (ALB) ou usar Session Manager para acesso, removendo a necessidade de porta 22 aberta para a internet.
-3.  **CI/CD Automatizado:**
-    - Implementar Pipeline no GitHub Actions que roda `terraform apply` automaticamente em Pull Requests aprovados e faz o build/push da imagem Docker. (VOU FAZER)
-4.  **Monitoramento:**
+3.  **Monitoramento:**
     - Criar Dashboards no CloudWatch monitorando CPU da instância e métricas de distribuição do CloudFront (Cache Hit Rate).
