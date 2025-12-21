@@ -13,8 +13,8 @@ ec2_allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
 ec2_user_data = ""
 
 # Configuração de chave SSH
-ec2_create_key_pair = true
-ec2_public_key = "" #gerenciado pelo .tfvars.local
+ec2_create_key_pair = false
+ec2_public_key      = "" #gerenciado pelo .tfvars.local
 
 # Configuração ECR
 ec2_ecr_repository = "admin-panel"
