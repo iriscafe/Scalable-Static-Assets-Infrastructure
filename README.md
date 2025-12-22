@@ -59,6 +59,10 @@ Os logs do script de inicialização (`user-data`) estão configurados para sere
 
 Essencial para debug. Como a automação roda "às escuras" durante o boot, ter um log detalhado permite diagnosticar falhas no pull da imagem Docker ou permissões de IAM sem precisar "adivinhar" o erro.
 
+### 6. Backend Terraform
+
+O backend Terraform foi configurado para usar um S3 com versionamento e bloqueio de concorrência. Isso garante que o estado da infraestrutura seja mantido de forma segura e que não haja perdas de dados em caso de falha.
+
 ---
 
 ## 🚀 Como Executar
@@ -68,6 +72,7 @@ Essencial para debug. Como a automação roda "às escuras" durante o boot, ter 
 - [Terraform](https://www.terraform.io/) instalado.
 - [AWS CLI](https://aws.amazon.com/cli/) instalado e configurado com suas credenciais.
 - [Docker](https://www.docker.com/) (opcional, caso queira buildar a imagem do admin localmente).
+- [Makefile](https://www.gnu.org/software/make/) (para executar os comandos do terraform).
 
 ### Passo a Passo
 
@@ -88,7 +93,7 @@ Essencial para debug. Como a automação roda "às escuras" durante o boot, ter 
 
     # Visualiza o plano de execução
     make plan
-    # ou: terraform plan -var-file="dev/ec2.tfvars" ... (veja o Makefile (make help) para os argumentos exatos)
+    # ou: terraform plan -var-file="dev/ec2.tfvars" -var-file="dev/s3.tfvars" -var-file="dev/cloudfront.tfvars" (veja o Makefile (make help) para os argumentos exatos)
 
     # Aplica a infraestrutura
     make apply
@@ -111,3 +116,5 @@ Essencial para debug. Como a automação roda "às escuras" durante o boot, ter 
     - Mover a EC2 para uma Subnet Privada atrás de um Application Load Balancer (ALB) ou usar Session Manager para acesso, removendo a necessidade de porta 22 aberta para a internet.
 3.  **Monitoramento:**
     - Criar Dashboards no CloudWatch monitorando CPU da instância e métricas de distribuição do CloudFront (Cache Hit Rate).
+4.  **Pipeline:**
+    - Melhoria nas regras de execuçao da pipeline
