@@ -12,7 +12,25 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      infra: ${{ steps.filter.outputs.infra }}
+      admin: ${{ steps.filter.outputs.admin }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            infra:
+              - 'infra/**'
+            admin:
+              - 'admin-panel/**'
+
   resources-create:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.infra == 'true' }} || ${{ needs.check-changes.outputs.admin == 'true' }}
     runs-on: ubuntu-latest
     outputs:
       cloudfront_url: ${{ steps.terraform.outputs.url }}
